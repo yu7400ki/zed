@@ -650,6 +650,45 @@ impl PlatformWindow for WindowsWindow {
             .detach();
     }
 
+    fn set_position(&self, origin: Point<Pixels>) {
+        let hwnd = self.0.hwnd;
+        let origin = gpui::bounds(origin, self.bounds().size)
+            .to_device_pixels(self.scale_factor())
+            .origin;
+
+        self.0
+            .executor
+            .spawn(async move {
+                unsafe {
+                    // SetWindowPos places the whole window, so the frame the client area sits
+                    // inside of has to be taken off the point the caller asked for.
+                    let mut frame = RECT::default();
+                    let mut client = POINT::default();
+                    if GetWindowRect(hwnd, &mut frame)
+                        .context("unable to read the window's frame")
+                        .log_err()
+                        .is_none()
+                        || !ClientToScreen(hwnd, &mut client).as_bool()
+                    {
+                        return;
+                    }
+
+                    SetWindowPos(
+                        hwnd,
+                        None,
+                        origin.x.0 + frame.left - client.x,
+                        origin.y.0 + frame.top - client.y,
+                        0,
+                        0,
+                        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+                    )
+                    .context("unable to move the window")
+                    .log_err();
+                }
+            })
+            .detach();
+    }
+
     fn scale_factor(&self) -> f32 {
         self.state.scale_factor.get()
     }
@@ -910,6 +949,16 @@ impl PlatformWindow for WindowsWindow {
             } else if let Some(mut status) = self.state.initial_placement.take() {
                 status.state = WindowOpenState::Maximized;
                 self.state.initial_placement.set(Some(status));
+            }
+        }
+    }
+
+    fn unzoom(&self) {
+        unsafe {
+            // SW_RESTORE activates the window it is sent to, so a window that is
+            // already showing its own bounds is left alone.
+            if IsIconic(self.0.hwnd).as_bool() || IsZoomed(self.0.hwnd).as_bool() {
+                ShowWindowAsync(self.0.hwnd, SW_RESTORE).ok().log_err();
             }
         }
     }

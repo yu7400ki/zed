@@ -2484,6 +2484,12 @@ impl Window {
         self.platform_window.resize(size);
     }
 
+    /// Move the window so that its content starts at the given point of the
+    /// screen. Does nothing on platforms that leave window placement to the user.
+    pub fn set_window_position(&self, origin: Point<Pixels>) {
+        self.platform_window.set_position(origin);
+    }
+
     /// Returns whether or not the window is currently fullscreen
     pub fn is_fullscreen(&self) -> bool {
         self.platform_window.is_fullscreen()
@@ -2543,6 +2549,13 @@ impl Window {
     /// Toggle zoom on the window.
     pub fn zoom_window(&self) {
         self.platform_window.zoom();
+    }
+
+    /// Restore a minimized or maximized window, giving it back the bounds it was
+    /// last shown with. Does nothing on platforms that leave window placement to
+    /// the user.
+    pub fn unzoom_window(&self) {
+        self.platform_window.unzoom();
     }
 
     /// Opens the native title bar context menu, useful when implementing client side decorations (Wayland and X11)

@@ -819,6 +819,9 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
     fn window_bounds(&self) -> WindowBounds;
     fn content_size(&self) -> Size<Pixels>;
     fn resize(&mut self, size: Size<Pixels>);
+    /// Move the window so that its content area starts at the given point of the
+    /// screen. Does nothing on platforms that leave window placement to the user.
+    fn set_position(&self, _origin: Point<Pixels>) {}
     fn scale_factor(&self) -> f32;
     fn appearance(&self) -> WindowAppearance;
     fn display(&self) -> Option<Rc<dyn PlatformDisplay>>;
@@ -849,6 +852,10 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
     fn set_background_appearance(&self, background_appearance: WindowBackgroundAppearance);
     fn minimize(&self);
     fn zoom(&self);
+    /// Restore a minimized or maximized window, giving it back the bounds it was
+    /// last shown with. Does nothing on platforms that leave window placement to
+    /// the user.
+    fn unzoom(&self) {}
     fn toggle_fullscreen(&self);
     fn is_fullscreen(&self) -> bool;
     fn frame_waker(&self) -> Option<Rc<dyn Fn()>> {
