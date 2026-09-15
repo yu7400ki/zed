@@ -1007,6 +1007,28 @@ impl PlatformWindow for WindowsWindow {
         self.0.hwnd
     }
 
+    fn register_shared_texture(
+        &self,
+        handle: windows::Win32::Foundation::HANDLE,
+        size: Size<DevicePixels>,
+    ) -> anyhow::Result<SharedTextureId> {
+        self.state
+            .renderer
+            .borrow_mut()
+            .register_shared_texture(handle, size)
+    }
+
+    fn release_shared_texture(&self, texture: SharedTextureId) {
+        self.state
+            .renderer
+            .borrow_mut()
+            .release_shared_texture(texture);
+    }
+
+    fn has_shared_texture(&self, texture: SharedTextureId) -> bool {
+        self.state.renderer.borrow().has_shared_texture(texture)
+    }
+
     fn gpu_specs(&self) -> Option<GpuSpecs> {
         self.state.renderer.borrow().gpu_specs().log_err()
     }

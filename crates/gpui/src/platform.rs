@@ -812,6 +812,24 @@ pub enum TextInputStateChange {
     ContentChanged,
 }
 
+/// A Direct3D texture a window opened from a shared NT handle, as returned by
+/// [`PlatformWindow::register_shared_texture`].
+///
+/// The pixels stay in the texture the handle names, so this is unrelated to the
+/// ids of images held in the sprite atlas. Ids are unique within the window
+/// that opened them; painting one on another window draws nothing.
+#[cfg(target_os = "windows")]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct SharedTextureId(pub(crate) u64);
+
+#[cfg(target_os = "windows")]
+impl SharedTextureId {
+    /// Create a new `SharedTextureId` from a raw platform identifier.
+    pub fn new(id: u64) -> Self {
+        Self(id)
+    }
+}
+
 #[expect(missing_docs)]
 pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
     fn bounds(&self) -> Bounds<Pixels>;
@@ -902,6 +920,39 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
 
     #[cfg(target_os = "windows")]
     fn get_raw_handle(&self) -> windows::Win32::Foundation::HWND;
+
+    /// Opens the Direct3D texture named by a shared NT handle on the device
+    /// this window renders with, so that it can be painted with
+    /// [`Window::paint_surface`](crate::Window::paint_surface).
+    ///
+    /// The handle is owned by the window from this call on: it is closed when
+    /// the texture is released, when the window goes away, and when opening
+    /// fails. A texture whose size differs from `size` is rejected.
+    #[cfg(target_os = "windows")]
+    fn register_shared_texture(
+        &self,
+        handle: windows::Win32::Foundation::HANDLE,
+        _size: Size<DevicePixels>,
+    ) -> Result<SharedTextureId> {
+        unsafe { windows::Win32::Foundation::CloseHandle(handle) }.ok();
+        anyhow::bail!("this window cannot open shared textures")
+    }
+
+    /// Releases a texture opened by [`Self::register_shared_texture`] and
+    /// closes the handle it was opened from. Unknown ids are ignored.
+    #[cfg(target_os = "windows")]
+    fn release_shared_texture(&self, _texture: SharedTextureId) {}
+
+    /// Whether `texture` is still open on this window.
+    ///
+    /// A texture stays open until it is released, except that a device loss
+    /// the texture cannot be reopened across drops it. Its owner learns that
+    /// from here, or from [`Window::paint_surface`](crate::Window::paint_surface),
+    /// and has to register the handle again to paint it.
+    #[cfg(target_os = "windows")]
+    fn has_shared_texture(&self, _texture: SharedTextureId) -> bool {
+        false
+    }
 
     // Linux specific methods
     fn inner_window_bounds(&self) -> WindowBounds {
