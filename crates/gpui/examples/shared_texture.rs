@@ -216,7 +216,12 @@ mod example {
                 .size_full()
                 .bg(rgb(0x1d4e89))
                 .text_color(rgb(0xffffff))
-                .child("A texture from another Direct3D device, drawn in the scene")
+                .child(match window.gpu_adapter_luid() {
+                    Some(luid) => format!(
+                        "A texture from another Direct3D device, drawn in the scene (adapter LUID {luid:#x})"
+                    ),
+                    None => "A texture from another Direct3D device, drawn in the scene".to_owned(),
+                })
                 .child(
                     div()
                         .flex()

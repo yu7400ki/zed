@@ -954,6 +954,16 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
         false
     }
 
+    /// The LUID of the graphics adapter this window renders with, packed as
+    /// `(HighPart << 32) | LowPart`.
+    ///
+    /// A texture can only be opened by [`Self::register_shared_texture`] if
+    /// the process that shared it produced it on this adapter.
+    #[cfg(target_os = "windows")]
+    fn gpu_adapter_luid(&self) -> Option<u64> {
+        None
+    }
+
     // Linux specific methods
     fn inner_window_bounds(&self) -> WindowBounds {
         self.window_bounds()

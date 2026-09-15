@@ -304,6 +304,12 @@ impl DirectXRenderer {
         self.shared_textures.contains_key(&texture)
     }
 
+    pub(crate) fn adapter_luid(&self) -> Result<u64> {
+        let devices = self.devices.as_ref().context("devices missing")?;
+        let luid = unsafe { devices.adapter.GetDesc1() }?.AdapterLuid;
+        Ok(((luid.HighPart as u32 as u64) << 32) | luid.LowPart as u64)
+    }
+
     pub(crate) fn sprite_atlas(&self) -> Arc<dyn PlatformAtlas> {
         self.atlas.clone()
     }

@@ -4664,6 +4664,16 @@ impl Window {
         self.platform_window.release_shared_texture(texture);
     }
 
+    /// The LUID of the graphics adapter this window renders with, packed as
+    /// `(HighPart << 32) | LowPart`.
+    ///
+    /// A texture can only be opened by [`Self::register_shared_texture`] if
+    /// the process that shared it produced it on this adapter.
+    #[cfg(target_os = "windows")]
+    pub fn gpu_adapter_luid(&self) -> Option<u64> {
+        self.platform_window.gpu_adapter_luid()
+    }
+
     /// Paint the `source` part of a registered shared texture into the scene
     /// for the next frame at the current z-index, filling `bounds`.
     ///

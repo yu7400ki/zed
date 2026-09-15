@@ -1029,6 +1029,10 @@ impl PlatformWindow for WindowsWindow {
         self.state.renderer.borrow().has_shared_texture(texture)
     }
 
+    fn gpu_adapter_luid(&self) -> Option<u64> {
+        self.state.renderer.borrow().adapter_luid().log_err()
+    }
+
     fn gpu_specs(&self) -> Option<GpuSpecs> {
         self.state.renderer.borrow().gpu_specs().log_err()
     }
