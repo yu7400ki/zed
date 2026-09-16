@@ -205,6 +205,10 @@ name = "set_menus"
 path = "examples/set_menus.rs"
 
 [[example]]
+name = "shared_texture"
+path = "examples/shared_texture.rs"
+
+[[example]]
 name = "system_notifications"
 path = "examples/system_notifications.rs"
 

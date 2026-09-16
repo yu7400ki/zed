@@ -4636,6 +4636,83 @@ impl Window {
         });
     }
 
+    /// Opens the Direct3D texture named by a shared NT handle on the device
+    /// this window renders with, and returns the id [`Self::paint_surface`]
+    /// draws it by.
+    ///
+    /// The texture is sampled as premultiplied alpha. The handle is owned by
+    /// the window from this call on: it is closed by
+    /// [`Self::release_shared_texture`], when the window goes away, and when
+    /// opening fails. A texture whose size differs from `size` is rejected.
+    ///
+    /// The id stays valid until it is released, except that a device loss the
+    /// texture cannot be reopened across drops it; [`Self::paint_surface`]
+    /// reports that.
+    #[cfg(target_os = "windows")]
+    pub fn register_shared_texture(
+        &self,
+        handle: windows::Win32::Foundation::HANDLE,
+        size: Size<DevicePixels>,
+    ) -> Result<crate::SharedTextureId> {
+        self.platform_window.register_shared_texture(handle, size)
+    }
+
+    /// Releases a texture opened by [`Self::register_shared_texture`] and
+    /// closes the handle it was opened from. Unknown ids are ignored.
+    #[cfg(target_os = "windows")]
+    pub fn release_shared_texture(&self, texture: crate::SharedTextureId) {
+        self.platform_window.release_shared_texture(texture);
+    }
+
+    /// The LUID of the graphics adapter this window renders with, packed as
+    /// `(HighPart << 32) | LowPart`.
+    ///
+    /// A texture can only be opened by [`Self::register_shared_texture`] if
+    /// the process that shared it produced it on this adapter.
+    #[cfg(target_os = "windows")]
+    pub fn gpu_adapter_luid(&self) -> Option<u64> {
+        self.platform_window.gpu_adapter_luid()
+    }
+
+    /// Paint the `source` part of a registered shared texture into the scene
+    /// for the next frame at the current z-index, filling `bounds`.
+    ///
+    /// `source` is in the texture's own pixels and is trimmed to it, so the
+    /// part of it that hangs outside the texture is not painted; the texture is
+    /// stretched when what is left and `bounds` disagree.
+    ///
+    /// Returns whether the texture is still open. `false` means nothing was
+    /// painted and the caller has to register its handle again: a device loss
+    /// that a texture cannot be reopened across drops it.
+    ///
+    /// This method should only be called as part of the paint phase of element drawing.
+    #[cfg(target_os = "windows")]
+    pub fn paint_surface(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        texture: crate::SharedTextureId,
+        source: Bounds<DevicePixels>,
+    ) -> bool {
+        use crate::PaintSurface;
+
+        self.invalidator.debug_assert_paint();
+
+        if !self.platform_window.has_shared_texture(texture) {
+            return false;
+        }
+
+        let bounds = self.snap_bounds(bounds);
+        let content_mask = self.snapped_content_mask();
+        self.next_frame.scene.insert_primitive(PaintSurface {
+            order: 0,
+            bounds,
+            content_mask,
+            texture,
+            source,
+        });
+        true
+    }
+
     /// Removes an image from the sprite atlas.
     pub fn drop_image(&mut self, data: Arc<RenderImage>) -> Result<()> {
         for frame_index in 0..data.frame_count() {

@@ -1266,3 +1266,50 @@ float4 polychrome_sprite_fragment(PolychromeSpriteFragmentInput input): SV_Targe
     color.a *= sprite.opacity * saturate(0.5 - distance);
     return color;
 }
+
+/*
+**
+**              Surfaces
+**
+*/
+
+struct Surface {
+    Bounds bounds;
+    Bounds content_mask;
+    Bounds source;
+};
+
+struct SurfaceVertexOutput {
+    float4 position: SV_Position;
+    float2 texture_coords: TEXCOORD0;
+    float4 clip_distance: SV_ClipDistance;
+};
+
+struct SurfaceFragmentInput {
+    float4 position: SV_Position;
+    float2 texture_coords: TEXCOORD0;
+};
+
+StructuredBuffer<Surface> surfaces: register(t1);
+
+SurfaceVertexOutput surface_vertex(uint vertex_id: SV_VertexID, uint instance_id: SV_InstanceID) {
+    float2 unit_vertex = float2(float(vertex_id & 1u), 0.5 * float(vertex_id & 2u));
+    Surface surface = surfaces[instance_id];
+    float4 device_position = to_device_position(unit_vertex, surface.bounds);
+    float4 clip_distance = distance_from_clip_rect(unit_vertex, surface.bounds,
+                                                   surface.content_mask);
+
+    float2 texture_size;
+    t_sprite.GetDimensions(texture_size.x, texture_size.y);
+
+    SurfaceVertexOutput output;
+    output.position = device_position;
+    output.texture_coords = (surface.source.origin + unit_vertex * surface.source.size) / texture_size;
+    output.clip_distance = clip_distance;
+    return output;
+}
+
+// The texture is sampled as premultiplied alpha, matching the blend state.
+float4 surface_fragment(SurfaceFragmentInput input): SV_Target {
+    return t_sprite.Sample(s_sprite, input.texture_coords);
+}
