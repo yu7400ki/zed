@@ -193,6 +193,10 @@ name = "window_movable"
 path = "examples/window_movable.rs"
 
 [[example]]
+name = "window_placement"
+path = "examples/window_placement.rs"
+
+[[example]]
 name = "opacity"
 path = "examples/opacity.rs"
 
