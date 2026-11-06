@@ -482,6 +482,15 @@ impl LineWrapper {
         // the next line. `/` and `?` stay break opportunities so long paths
         // and URLs (`a/b`, `foo?b=2`) can wrap.
         matches!(c, '!' | ')' | ']' | '}' | '"' | '”' | '»' | '…') ||
+        // CJK punctuation and closing brackets never start a line either (JIS X 4051
+        // line-start prohibition, as in CSS `line-break: normal`), so `日本語。`
+        // keeps the full stop on the line it ends.
+        matches!(
+            c,
+            '、' | '。' | '，' | '．' | '・' | '：' | '；' | '？' | '！'
+                | '）' | '］' | '｝' | '」' | '』' | '】' | '〕' | '〉'
+                | '》' | '〗' | '〙' | '〟'
+        ) ||
         // `⋯` character is special used in Zed, to keep this at the end of the line.
         matches!(c, '⋯') ||
 
@@ -1192,6 +1201,13 @@ mod tests {
         assert_not_word("你好");
         assert_not_word("안녕하세요");
         assert_not_word("こんにちは");
+        // CJK punctuation and closing brackets that never start a line
+        assert_word("、。，．・：；？！）］｝」』】〕〉》〗〙〟");
+        // Opening brackets may start a line
+        assert_not_word("「");
+        assert_not_word("『");
+        assert_not_word("（");
+        assert_not_word("【");
         assert_not_word("😀😁😂");
         assert_not_word("()[]{}<>");
 
